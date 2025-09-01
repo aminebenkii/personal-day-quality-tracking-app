@@ -2,21 +2,25 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from config import SHEET_ID, WORKSHEET_NAME
 import pandas as pd
-from pathlib import Path   
+from pathlib import Path
 from gspread_formatting import CellFormat, textFormat, format_cell_range
-from metrics import metrics  
+from metrics import metrics
 import os
 import json
 
+# Define Google API scope
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
-# ROOT_DIR = Path(__file__).resolve().parents[1]
-# CREDENTIALS_FILE = ROOT_DIR / "app" / "creds.json"  
-
+# Load credentials from Streamlit Secrets (TOML string)
 creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+client = gspread.authorize(creds)
 
 
-def create_evaluation_grid_if_needed(client):
+def create_evaluation_grid_if_needed():
     spreadsheet = client.open_by_key(SHEET_ID)
     try:
         sheet = spreadsheet.worksheet("EvaluationGrid")
@@ -50,19 +54,8 @@ def save_to_google_sheets(data_dict: dict):
     Saves a single day's reflection data to Google Sheets.
     Automatically creates headers if the sheet is empty.
     """
+    create_evaluation_grid_if_needed()
 
-    # Define Google API scope
-    scope = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-
-    # Authenticate with Google
-    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
-    client = gspread.authorize(creds)
-    create_evaluation_grid_if_needed(client)
-
-    # Open sheet & worksheet
     sheet = client.open_by_key(SHEET_ID)
     try:
         worksheet = sheet.worksheet(WORKSHEET_NAME)
@@ -78,6 +71,4 @@ def save_to_google_sheets(data_dict: dict):
         worksheet.clear()
         worksheet.append_row(list(df.columns))
 
-
-    # Convert all values to strings before appending (avoid int64 JSON errors)
     worksheet.append_row([str(x) for x in df.iloc[0]])
