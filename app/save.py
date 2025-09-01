@@ -4,12 +4,16 @@ from config import SHEET_ID, WORKSHEET_NAME
 import pandas as pd
 from pathlib import Path   
 from gspread_formatting import CellFormat, textFormat, format_cell_range
-
 from metrics import metrics  
+import os
+import json
 
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-CREDENTIALS_FILE = ROOT_DIR / "app" / "creds.json"  
+# ROOT_DIR = Path(__file__).resolve().parents[1]
+# CREDENTIALS_FILE = ROOT_DIR / "app" / "creds.json"  
+
+creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
 
 def create_evaluation_grid_if_needed(client):
